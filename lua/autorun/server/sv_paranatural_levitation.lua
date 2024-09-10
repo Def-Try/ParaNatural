@@ -2,14 +2,14 @@ hook.Add("Think", "paranatural_levitation", function()
 	for _,ply in player.Iterator() do
 		if ply.paranatural_lv_zlock then
 			ply:SetPos(Vector(ply:GetPos().x, ply:GetPos().y, ply.paranatural_lv_zlock))
-			ply:SetVelocity(Vector(0, 0, -ply:GetVelocity().z))
+			--ply:SetVelocity(Vector(0, 0, -ply:GetVelocity().z))
 		end
 		--print(ply.paranatural_lv_falling)
 		if ply.paranatural_lv_falling then
 			local zvel = ply:GetVelocity().z
 			ply:SetVelocity(Vector(0, 0, -zvel + math.max(zvel, -500)))
 		end
-		if ply:IsOnGround() and not ply.paranatural_lv_wasonground then
+		if ply:IsOnGround() and not ply.paranatural_lv_reset then
 			ply.paranatural_lv_wasonground = true
 			ply.paranatural_lv_holdingjump = false
 			ply.paranatural_lv_reset = true
@@ -21,8 +21,6 @@ hook.Add("Think", "paranatural_levitation", function()
 		if ply:KeyDown(IN_JUMP) and ply.paranatural_lv_id and not ply.paranatural_lv_wasonground then
 			timer.Remove("paranatural_lv_lower_"..ply.paranatural_lv_id)
 			ply:SetGravity(1)
-			ply:SetMoveType(MOVETYPE_WALK)
-			ply:SetActivity(ACT_IDLE)
 
 			ply.paranatural_lv_zlock = nil
 			ply.paranatural_lv_id = nil
@@ -57,12 +55,10 @@ hook.Add("Think", "paranatural_levitation", function()
 			ply.paranatural_lv_holdingjump = false
 			ply:SetVelocity(Vector(0, 0, -ply:GetVelocity().z))
 			ply:SetGravity(0)
-			ply:SetMoveType(MOVETYPE_FLY)
 			ply.paranatural_lv_zlock = ply:GetPos().z
 			ply.paranatural_lv_id = math.random(1, 65536)
 			timer.Create("paranatural_lv_lower_"..ply.paranatural_lv_id, 60, 1, function()
 				ply:SetGravity(0.33)
-				ply:SetMoveType(MOVETYPE_WALK)
 				ply.paranatural_lv_falling = true
 				ply.paranatural_lv_zlock = nil
 				ply.paranatural_lv_id = nil
