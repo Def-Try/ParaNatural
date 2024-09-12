@@ -14,14 +14,20 @@ local function grab(ply)
 	ply:SelectWeapon("paranatural_telekinetic")
 	ply.paranatural_blocking_ability = "telekinesis"
 	ply.paranatural_tk_grabbed = ent
-	ply.paranatural_tk_grabbed.paranatural_tk_gravityenable = ply.paranatural_tk_grabbed:GetPhysicsObject():IsGravityEnabled()
+	ply.paranatural_tk_grabbed.paranatural_tk_gravityenable = {}
+	for i=0,ply.paranatural_tk_grabbed:GetPhysicsObjectCount()-1,1 do
+		ply.paranatural_tk_grabbed.paranatural_tk_gravityenable[i] =
+			ply.paranatural_tk_grabbed:GetPhysicsObjectNum(i):IsGravityEnabled()
+		ply.paranatural_tk_grabbed:GetPhysicsObjectNum(i):EnableGravity(false)
+	end
 	ply.paranatural_tk_grabbed.paranatural_tk_collidegroup = ply.paranatural_tk_grabbed:GetCollisionGroup()
-	ply.paranatural_tk_grabbed:GetPhysicsObject():EnableGravity(false)
 	ply.paranatural_tk_grabbed:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
 end
 local function ungrab(ply)
 	ply.paranatural_blocking_ability = nil
-	ply:SelectWeapon(ply.paranatural_tk_activewep)
+	if ply:GetActiveWeapon():GetClass() == "paranatural_telekinetic" then
+		ply:SelectWeapon(ply.paranatural_tk_activewep)
+	end
 	ply:StripWeapon("paranatural_telekinetic")
 	if not IsValid(ply.paranatural_tk_grabbed) then
 		ply.paranatural_tk_grabbed = nil
@@ -31,7 +37,12 @@ local function ungrab(ply)
 		ply.paranatural_tk_grabbed = nil
 		return
 	end
-	ply.paranatural_tk_grabbed:GetPhysicsObject():EnableGravity(ply.paranatural_tk_grabbed.paranatural_tk_gravityenable)
+	ply.paranatural_tk_grabbed.paranatural_tk_grabtime = nil
+	for i=0,ply.paranatural_tk_grabbed:GetPhysicsObjectCount()-1,1 do
+		ply.paranatural_tk_grabbed:GetPhysicsObjectNum(i):EnableGravity(
+			ply.paranatural_tk_grabbed.paranatural_tk_gravityenable[i]
+		)
+	end
 	ply.paranatural_tk_grabbed:SetCollisionGroup(ply.paranatural_tk_grabbed.paranatural_tk_collidegroup)
 	ply.paranatural_tk_grabbed = nil
 end
@@ -40,13 +51,36 @@ hook.Add("Think", "paranatural_telekinesis", function()
 	for _,ply in player.Iterator() do
 		if ply.paranatural_blocking_ability and ply.paranatural_blocking_ability ~= "telekinesis" then ply.paranatural_tk_control = false return end
 		if IsValid(ply.paranatural_tk_grabbed) then
+			if not ply.paranatural_tk_grabbed.paranatural_tk_grabtime then
+				ply.paranatural_tk_grabbed.paranatural_tk_grabtime = CurTime()
+				ply.paranatural_tk_grabbed.paranatural_tk_grabz = ply.paranatural_tk_grabbed:GetPos().z
+				for i=0,ply.paranatural_tk_grabbed:GetPhysicsObjectCount()-1,1 do
+					ply.paranatural_tk_grabbed:GetPhysicsObjectNum(i):SetAngleVelocity(VectorRand() * 180)
+				end
+			end
+			if CurTime() - ply.paranatural_tk_grabbed.paranatural_tk_grabtime < 0.743 then
+				if ply.paranatural_tk_grabbed:GetPos().z - ply.paranatural_tk_grabbed.paranatural_tk_grabz < 50 then
+					for i=0,ply.paranatural_tk_grabbed:GetPhysicsObjectCount()-1,1 do
+						ply.paranatural_tk_grabbed:GetPhysicsObjectNum(i):SetVelocity(
+							ply.paranatural_tk_grabbed:GetPhysicsObjectNum(i):GetVelocity() + Vector(0, 0, 25)
+						)
+					end
+				else
+					for i=0,ply.paranatural_tk_grabbed:GetPhysicsObjectCount()-1,1 do
+						ply.paranatural_tk_grabbed:GetPhysicsObjectNum(i):SetVelocity(
+							ply.paranatural_tk_grabbed:GetPhysicsObjectNum(i):GetVelocity()*0.9
+						)
+					end
+				end
+				return
+			end
 			local ply_hold_pos = (ply:GetPos() + ply:OBBCenter())
 			ply_hold_pos = ply_hold_pos + ply:EyeAngles():Forward() * 75
 			ply_hold_pos = ply_hold_pos + ply:EyeAngles():Up() * 50
 			ply_hold_pos = ply_hold_pos + ply:EyeAngles():Right() * 25
 			local vel = ply_hold_pos - (ply.paranatural_tk_grabbed:GetPos() + ply.paranatural_tk_grabbed:OBBCenter())
 			local dist = (vel:Distance(Vector()) / 25)
-			if ply.paranatural_tk_grabbed:GetPos():Distance(ply:GetPos() + ply:OBBCenter()) < 150 then
+			if ply.paranatural_tk_grabbed:GetPos():Distance(ply:GetPos() + ply:OBBCenter()) < 75 then
 				dist = dist * 100
 			end
 
@@ -56,7 +90,7 @@ hook.Add("Think", "paranatural_telekinesis", function()
 			for i=0,ply.paranatural_tk_grabbed:GetPhysicsObjectCount()-1,1 do
 				ply.paranatural_tk_grabbed:GetPhysicsObjectNum(i):SetVelocity(
 					ply.paranatural_tk_grabbed:GetPhysicsObjectNum(i):GetVelocity() * 0.5 +
-					vel * math.log(dist * dist) * 0.5
+					vel * math.log(dist * dist * 10) * 0.5
 				)
 				if i ~= 0 then
 					local da = (a - ply.paranatural_tk_grabbed:GetPhysicsObjectNum(i):GetAngles())
@@ -65,7 +99,7 @@ hook.Add("Think", "paranatural_telekinesis", function()
 				end
 			end
 
-			if ply:KeyDown(IN_ATTACK) then
+			if ply:KeyDown(IN_ATTACK) and ply:GetActiveWeapon():GetClass() == "paranatural_telekinetic" then
 				local ent = ply.paranatural_tk_grabbed
 				ungrab(ply)
 				local trace = util.GetPlayerTrace(ply, ply:GetAimVector() * (4096 * 8))
@@ -88,7 +122,7 @@ hook.Add("Think", "paranatural_telekinesis", function()
 		if not ply.paranatural_tk_grabbed then
 			grab(ply)
 			if IsValid(ply.paranatural_tk_grabbed) then
-				ply:EmitSound("paranatural/telekinesis/grab.mp3", 75, 100, 1, CHAN_STATIC)
+				ply:EmitSound("paranatural/telekinesis/grab.wav", 75, 100, 1, CHAN_STATIC)
 			end
 		else
 			ungrab(ply)
