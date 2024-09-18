@@ -30,6 +30,8 @@ local function shield(ply)
 	}
 	ply.paranatural_sh_shield = {}
 	ply.paranatural_sh_shield_elist = {}
+	ply:EmitSound("paranatural/shield/raise.wav", 75, 100, 1, CHAN_STATIC)
+	ply:EmitSound("paranatural/shield/hum.wav", 75, 100, 0.75, CHAN_STATIC)
 	for n,position in pairs(positions) do
 		ply.paranatural_sh_shield[n] = ents.Create("prop_physics")
 		local e = ply.paranatural_sh_shield[n]
@@ -40,8 +42,8 @@ local function shield(ply)
 		--	ply:EyeAngles():Up() * position.z
 		--)
 		local spos = ply:GetPos() + ply:GetAngles():Up() * 100
-		spos = util.QuickTrace(spos, Vector(0, 0, -32767)).HitPos
-		e:SetPos(spos + Vector(math.random(-100, 100), math.random(-100, 100), 0))
+		spos = util.QuickTrace(spos, Vector(0, 0, -32767), ply).HitPos
+		e:SetPos(spos + math.random(-100, 100) * ply:GetAngles():Right())
 		e:SetModel(models[n])
 		e:Spawn()
 		e.pos = position
@@ -71,6 +73,7 @@ local function unshield(ply)
 	ply:SelectWeapon(ply.paranatural_sh_activewep)
 	ply:StripWeapon("paranatural_telekinetic")
 	ply.paranatural_sh_shielded = false
+	ply:StopSound("paranatural/shield/hum.wav")
 	for k,v in pairs(ply.paranatural_sh_shield) do
 		timer.Simple(2, function() v:Remove() end)
 		v:SetRenderMode(RENDERMODE_TRANSCOLOR)

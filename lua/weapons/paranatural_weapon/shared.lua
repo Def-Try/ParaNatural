@@ -1,4 +1,10 @@
 SWEP.Category = "Paranatural"
+SWEP.Spawnable = false
+SWEP.PrintName = "Service Weapon (DO NOT USE)"
+
+do return end -- not done! needs to be more polished before i'll remove that
+
+SWEP.Category = "Paranatural"
 SWEP.Spawnable = true
 SWEP.PrintName = "Service Weapon"
 SWEP.Author = "googer_"
