@@ -21,6 +21,7 @@ end)
 hook.Add("Think", "paranatural_dash", function()
 	for _,ply in player.Iterator() do
 		if not ply.paranatural_ds_control then return end
+		if not _G.paranatural.dash_allowed:GetBool() and not ply:IsAdmin() then continue end
 		if ply.paranatural_dashing then return end
 		ply.paranatural_ds_control = false
 		local ang = ply:EyeAngles()

@@ -1,0 +1,4 @@
+"VertexLitGeneric" {
+	"$basetexture" "paranatural/shield_mats/grass.png"
+ 	"$model" 1
+}

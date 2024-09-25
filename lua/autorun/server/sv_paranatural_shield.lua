@@ -31,7 +31,39 @@ local function shield(ply)
 	ply.paranatural_sh_shield = {}
 	ply.paranatural_sh_shield_elist = {}
 	ply:EmitSound("paranatural/shield/raise.wav", 75, 100, 1, CHAN_STATIC)
-	ply:EmitSound("paranatural/shield/hum.wav", 75, 100, 0.75, CHAN_STATIC)
+	--ply:EmitSound("paranatural/shield/hum.wav", 75, 100, 0.75, CHAN_STATIC)
+	hook.Add("EntityEmitSound", "paranatural_shield_sound_"..ply:GetName(), function(data)
+		data.DSP = 16
+		data.Pitch = 75
+		return true
+	end)
+
+	local material_lookup = {
+		[MAT_ANTLION]="paranatural/shield_mats/shell.vmt",
+		[MAT_BLOODYFLESH]="paranatural/shield_mats/flesh.vmt",
+		[MAT_CONCRETE]="paranatural/shield_mats/concrete.vmt",
+		[MAT_DIRT]="paranatural/shield_mats/dirt.vmt",
+		[MAT_EGGSHELL]="paranatural/shield_mats/shell.vmt",
+		[MAT_FLESH]="paranatural/shield_mats/flesh.vmt",
+		[MAT_GRATE]="paranatural/shield_mats/grate.vmt",
+		[MAT_ALIENFLESH]="paranatural/shield_mats/shell.vmt",
+		[MAT_CLIP]="paranatural/shield_mats/nodraw.vmt",
+		[MAT_SNOW]="paranatural/shield_mats/snow.vmt",
+		[MAT_PLASTIC]="paranatural/shield_mats/plastic.vmt",
+		[MAT_METAL]="paranatural/shield_mats/metal.vmt",
+		[MAT_SAND]="paranatural/shield_mats/sand.vmt",
+		[MAT_FOLIAGE]="paranatural/shield_mats/grass.vmt",
+		[MAT_COMPUTER]="paranatural/shield_mats/metal.vmt",
+		[MAT_SLOSH]="paranatural/shield_mats/shell.vmt",
+		[MAT_TILE]="paranatural/shield_mats/plastic.vmt",
+		[MAT_GRASS]="paranatural/shield_mats/grass.vmt",
+		[MAT_VENT]="paranatural/shield_mats/grate.vmt",
+		[MAT_WOOD]="paranatural/shield_mats/wood.vmt",
+		[MAT_DEFAULT]="paranatural/shield_mats/nodraw.vmt",
+		[MAT_GLASS]="paranatural/shield_mats/glass.vmt",
+		[MAT_WARPSHIELD]="paranatural/shield_mats/shell.vmt",
+	}
+
 	for n,position in pairs(positions) do
 		ply.paranatural_sh_shield[n] = ents.Create("prop_physics")
 		local e = ply.paranatural_sh_shield[n]
@@ -41,14 +73,22 @@ local function shield(ply)
 		--	ply:EyeAngles():Right() * position.y + 
 		--	ply:EyeAngles():Up() * position.z
 		--)
-		local spos = ply:GetPos() + ply:GetAngles():Up() * 100
-		spos = util.QuickTrace(spos, Vector(0, 0, -32767), ply).HitPos
-		e:SetPos(spos + math.random(-100, 100) * ply:GetAngles():Right())
+		local spos = ply:GetPos() + ply:GetAngles():Up() * 100 + math.random(-100, 100) * ply:GetAngles():Right()
+		local safety = 0
+		while not util.IsInWorld(spos) and safety < 5 do
+			safety = safety + 1
+			spos = ply:GetPos() + ply:GetAngles():Up() * 100 + math.random(-100, 100) * ply:GetAngles():Right()
+		end
+		local trace = util.TraceLine({start=spos, endpos=spos+Vector(0, 0, -32767), mask=MASK_NPCWORLDSTATIC})
+		spos = trace.HitPos
+		e:SetPos(spos)
 		e:SetModel(models[n])
+		e:SetMaterial(material_lookup[trace.MatType])
 		e:Spawn()
 		e.pos = position
 		e.ang = angles[n]
 		e.owner = ply
+		e:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
 		--e:SetAngles(ply:EyeAngles() + e.ang)
 		e:GetPhysicsObject():SetAngleDragCoefficient(20)
 		local hname = "paranatural_shield_nocollide_"..e:EntIndex()
@@ -74,6 +114,7 @@ local function unshield(ply)
 	ply:StripWeapon("paranatural_telekinetic")
 	ply.paranatural_sh_shielded = false
 	ply:StopSound("paranatural/shield/hum.wav")
+	hook.Remove("EntityEmitSound", "paranatural_shield_sound_"..ply:GetName())
 	for k,v in pairs(ply.paranatural_sh_shield) do
 		timer.Simple(2, function() v:Remove() end)
 		v:SetRenderMode(RENDERMODE_TRANSCOLOR)
@@ -96,8 +137,17 @@ end
 hook.Add("Think", "paranatural_shield", function()
 	for _,ply in player.Iterator() do
 		if ply.paranatural_blocking_ability and ply.paranatural_blocking_ability ~= "shield" then ply.paranatural_sh_control = false return end
+		if not _G.paranatural.dash_allowed:GetBool() and not ply:IsAdmin() then
+			if ply.paranatural_sh_shield then
+				unshield(ply)
+			end
+			continue
+		end
 
 		if ply.paranatural_sh_shield then
+			if not ply:Alive() then
+				return unshield(ply)
+			end
 			for _,ent in pairs(ply.paranatural_sh_shield) do
 				--ent:SetPos(ply:EyePos() + 
 				--	(ply:EyeAngles():Forward() * ent.pos.x + 

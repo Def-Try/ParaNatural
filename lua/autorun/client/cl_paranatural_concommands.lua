@@ -1,4 +1,38 @@
 hook.Add("PopulateToolMenu", "paranatural", function()
+    spawnmenu.AddToolMenuOption("Utilities", "Paranatural", "paranatural_a_settings", "Server Settings", "", "", function(panel)
+        panel:Clear()
+        panel:Help("This tab will NOT do anything if you don't have admin permissions on the server.")
+        local allow_telekinesis = panel:CheckBox("Allow Telekinesis usage to everyone", "")
+        panel:ControlHelp("If unchecked, will limit usage to only admins.")
+        local allow_shield = panel:CheckBox("Allow Shield usage to everyone", "")
+        panel:ControlHelp("If unchecked, will limit usage to only admins.")
+        local allow_dash = panel:CheckBox("Allow Dash usage to everyone", "")
+        panel:ControlHelp("If unchecked, will limit usage to only admins.")
+        local allow_levitation = panel:CheckBox("Allow Levitation usage to everyone", "")
+        panel:ControlHelp("If unchecked, will limit usage to only admins.")
+
+        function allow_telekinesis:OnChange(val) LocalPlayer():ConCommand("paranatural_admincontrol allow_everyone telekinesis "..(val and 1 or 0)) end
+        allow_telekinesis:SetConVar(nil)
+        function allow_shield:OnChange(val) LocalPlayer():ConCommand("paranatural_admincontrol allow_everyone shield "..(val and 1 or 0)) end
+        allow_shield:SetConVar(nil)
+        function allow_dash:OnChange(val) LocalPlayer():ConCommand("paranatural_admincontrol allow_everyone dash "..(val and 1 or 0)) end
+        allow_dash:SetConVar(nil)
+        function allow_levitation:OnChange(val) LocalPlayer():ConCommand("paranatural_admincontrol allow_everyone levitation "..(val and 1 or 0)) end
+        allow_levitation:SetConVar(nil)
+    end)
+    spawnmenu.AddToolMenuOption("Utilities", "Paranatural", "paranatural_settings", "Settings", "", "", function(panel)
+        panel:Clear()
+        panel:Help("Abilities toggles")
+        panel:ControlHelp("Please note that toggling these while using ability will make you unable to stop using disabled ability until you turn it back off and stop using it. For example, you won't be able to let go of a prop you hold with telekinesis ability if you disabled it.")
+        panel:CheckBox("Enable Telekinesis", "paranatural_telekinesis_enable")
+        panel:ControlHelp("Telekinesis is an ability to grab and throw various entities.")
+        panel:CheckBox("Enable Shield", "paranatural_shield_enable")
+        panel:ControlHelp("Shield lets you protect yourself with props that you rip out of the ground.")
+        panel:CheckBox("Enable Dash", "paranatural_dash_enable")
+        panel:ControlHelp("Dash is ability that sends you in the direction you are looking with a great force, damaging everything in your way")
+        panel:CheckBox("Enable Levitation", "paranatural_levitation_enable")
+        panel:ControlHelp("Levitation lets you levitate above the ground and break your falling avoiding the damage.")
+    end)
     spawnmenu.AddToolMenuOption("Utilities", "Paranatural", "paranatural_binds", "Bindings", "", "", function(panel)
         panel:Clear()
         panel:KeyBinder("Telekinesis", "paranatural_telekinesis_key")
@@ -32,6 +66,11 @@ end)
 local telekinesis = CreateClientConVar("paranatural_telekinesis_key", "30", true, false)
 local shield = CreateClientConVar("paranatural_shield_key", "31", true, false)
 local dash = CreateClientConVar("paranatural_dash_key", "12", true, false)
+
+local telekinesis_enable = CreateClientConVar("paranatural_telekinesis_enable", "1", true, true)
+local shield_enable = CreateClientConVar("paranatural_shield_enable", "1", true, true)
+local dash_enable = CreateClientConVar("paranatural_dash_enable", "1", true, true)
+local levitation_enable = CreateClientConVar("paranatural_levitation_enable", "1", true, true)
 --[[
     local form_1 = CreateClientConVar("paranatural_weapon_form_1", "grip", true, true)
     local form_2 = CreateClientConVar("paranatural_weapon_form_2", "spin", true, true)
@@ -40,16 +79,16 @@ local dash = CreateClientConVar("paranatural_dash_key", "12", true, false)
 local keys = {telekinesis=false, shield=false, dash=false}
 hook.Add("Think", "paranatural_control", function()
     if vgui.CursorVisible() then return end
-    if keys.telekinesis and not input.IsKeyDown(telekinesis:GetInt()) then
-        LocalPlayer():ConCommand("paranatural_telekinesis")
+    if telekinesis_enable:GetBool() and keys.telekinesis and not input.IsButtonDown(telekinesis:GetInt()) then
+        LocalPlayer():ConCommand("paranatural_control key telekinesis")
     end
-    if keys.shield and not input.IsKeyDown(shield:GetInt()) then
-        LocalPlayer():ConCommand("paranatural_shield")
+    if shield_enable:GetBool() and keys.shield and not input.IsButtonDown(shield:GetInt()) then
+        LocalPlayer():ConCommand("paranatural_control key shield")
     end
-    if keys.dash and not input.IsKeyDown(dash:GetInt()) then
-        LocalPlayer():ConCommand("paranatural_dash")
+    if dash_enable:GetBool() and keys.dash and not input.IsButtonDown(dash:GetInt()) then
+        LocalPlayer():ConCommand("paranatural_control key dash")
     end
-    keys.telekinesis = input.IsKeyDown(telekinesis:GetInt())
-    keys.shield = input.IsKeyDown(shield:GetInt())
-    keys.dash = input.IsKeyDown(dash:GetInt())
+    keys.telekinesis = input.IsButtonDown(telekinesis:GetInt())
+    keys.shield = input.IsButtonDown(shield:GetInt())
+    keys.dash = input.IsButtonDown(dash:GetInt())
 end)

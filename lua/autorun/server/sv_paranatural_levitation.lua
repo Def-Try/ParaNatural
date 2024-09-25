@@ -1,5 +1,18 @@
 hook.Add("Think", "paranatural_levitation", function()
 	for _,ply in player.Iterator() do
+		if ply:GetInfoNum("paranatural_levitation_enable", 1) ~= 1 then continue end
+		if not _G.paranatural.levitation_allowed:GetBool() and not ply:IsAdmin() then
+			ply.paranatural_lv_wasonground = true
+			ply.paranatural_lv_holdingjump = false
+			ply.paranatural_lv_reset = true
+			ply.paranatural_lv_zlock = nil
+			ply.paranatural_lv_falling = false
+			ply.paranatural_lv_inflictedmov = {0, 0}
+			ply:SetGravity(1)
+			ply:StopSound("paranatural/levitation/lower.wav")
+			ply:StopSound("paranatural/levitation/raise.wav")
+			continue
+		end
 		if ply.paranatural_lv_zlock then
 			ply:SetPos(Vector(ply:GetPos().x, ply:GetPos().y, ply.paranatural_lv_zlock))
 			ply:SetVelocity(Vector(0, 0, -ply:GetVelocity().z))

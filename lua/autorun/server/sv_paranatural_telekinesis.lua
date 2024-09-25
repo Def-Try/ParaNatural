@@ -2,13 +2,17 @@ local function grab(ply)
 	local ent = ply:GetEyeTrace().Entity
 	if not IsValid(ent:GetPhysicsObject()) or ent == game.GetWorld() then return end
 	if ent:IsNPC() or ent:IsPlayer() then
-		if ent:Health() / ent:GetMaxHealth() < 0.2 then
+		if ent:Health() / ent:GetMaxHealth() < 0.3 then
 			ent:TakeDamage(ent:Health() + 1, ply, ply)
 		else
 			return
 		end
 		ent = ply:GetEyeTrace().Entity -- should be killed entity's ragdoll
 	end
+	local mins, maxs = ent:GetModelBounds()
+	local size = maxs - mins
+	size = math.max(size[1], size[2], size[3])
+	if size > 96 then return end
 	ply.paranatural_tk_activewep = ply:GetActiveWeapon():GetClass()
 	ply:Give("paranatural_telekinetic")
 	ply:SelectWeapon("paranatural_telekinetic")
@@ -49,8 +53,17 @@ end
 
 hook.Add("Think", "paranatural_telekinesis", function()
 	for _,ply in player.Iterator() do
-		if ply.paranatural_blocking_ability and ply.paranatural_blocking_ability ~= "telekinesis" then ply.paranatural_tk_control = false return end
+		if ply.paranatural_blocking_ability and ply.paranatural_blocking_ability ~= "telekinesis" then ply.paranatural_tk_control = false continue end
+		if not _G.paranatural.telekinesis_allowed:GetBool() and not ply:IsAdmin() then
+			if IsValid(ply.paranatural_tk_grabbed) then
+				ungrab(ply)
+			end
+			continue
+		end
 		if IsValid(ply.paranatural_tk_grabbed) then
+			if not ply:Alive() then
+				return ungrab(ply)
+			end
 			if not ply.paranatural_tk_grabbed.paranatural_tk_grabtime then
 				ply.paranatural_tk_grabbed.paranatural_tk_grabtime = CurTime()
 				ply.paranatural_tk_grabbed.paranatural_tk_grabz = ply.paranatural_tk_grabbed:GetPos().z
@@ -109,6 +122,12 @@ hook.Add("Think", "paranatural_telekinesis", function()
 				
 				for i=0,ent:GetPhysicsObjectCount()-1,1 do
 					ent:GetPhysicsObjectNum(i):SetVelocity(yeet * 32767)
+					ent:GetPhysicsObjectNum(i):AddGameFlag(FVPHYSICS_HEAVY_OBJECT)
+					ent:GetPhysicsObjectNum(i):AddGameFlag(FVPHYSICS_WAS_THROWN)
+					timer.Simple(5, function()
+						if not IsValid(ent) or not IsValid(ent:GetPhysicsObjectNum(i)) then return end
+						ent:GetPhysicsObjectNum(i):ClearGameFlag(FVPHYSICS_HEAVY_OBJECT)
+					end)
 				end
 				ply:EmitSound("paranatural/telekinesis/throw.mp3", 75, 100, 1, CHAN_STATIC)
 			end
