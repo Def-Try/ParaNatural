@@ -1,38 +1,19 @@
-concommand.Add("paranatural_control", function(ply, cmd, args)
-    if args[1] == "key" then
-        if args[2] == "telekinesis" then
-            ply.paranatural_tk_control = true
-            return
-        end
-        if args[2] == "shield" then
-            ply.paranatural_sh_control = true
-            return
-        end
-        if args[2] == "dash" then
-            ply.paranatural_ds_control = true
-            return
-        end
-    end
-end)
+util.AddNetworkString("paranatural")
 
-concommand.Add("paranatural_admincontrol", function(ply, cmd, args)
-    if not ply:IsAdmin() then return end
-    if args[1] == "allow_everyone" then
-        if args[2] == "telekinesis" then
-            _G.paranatural.telekinesis_allowed:SetBool(args[3] == 1)
-            return
-        end
-        if args[2] == "shield" then
-            _G.paranatural.shield_allowed:SetBool(args[3] == 1)
-            return
-        end
-        if args[2] == "dash" then
-            _G.paranatural.dash_allowed:SetBool(args[3] == 1)
-            return
-        end
-        if args[2] == "levitation" then
-            _G.paranatural.levitation_allowed:SetBool(args[3] == 1)
-            return
-        end
+net.Receive("paranatural", function(_, ply)
+    local req = net.ReadUInt(1)
+    if req == 0 then
+        local cv = net.ReadString()
+        if not cv:StartsWith("paranatural_") then return end
+        net.Start("paranatural")
+            net.WriteString(cv)
+            net.WriteString(GetConVar(cv):GetString())
+        net.Send(ply)
+    end
+    if req == 1 then
+        if not ply:IsAdmin() then return end
+        local cv = net.ReadString()
+        if not cv:StartsWith("paranatural_") then return end
+        GetConVar(cv):SetString(net.ReadString())
     end
 end)

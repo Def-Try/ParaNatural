@@ -1,19 +1,16 @@
 SWEP.Category = "Paranatural"
-SWEP.Spawnable = false
-SWEP.PrintName = "Service Weapon (DO NOT USE)"
-
-do return end -- not done! needs to be more polished before i'll remove that
-
-SWEP.Category = "Paranatural"
 SWEP.Spawnable = true
 SWEP.PrintName = "Service Weapon"
 SWEP.Author = "googer_"
 SWEP.Contact = "no"
 SWEP.Purpose = "it shoots stuff"
-SWEP.ViewModel = "models/weapons/v_pistol.mdl"
-SWEP.WorldModel = "models/weapons/w_pistol.mdl"
+SWEP.ViewModel = "models/paranatural/serviceweapon/c_grip.mdl"
+SWEP.WorldModel = "models/paranatural/serviceweapon/c_grip.mdl"
 SWEP.Slot = 0
 SWEP.SlotPos = 0
+
+SWEP.UseHands = true
+SWEP.ViewModelFOV = 54
 
 game.AddAmmoType({
 	name = "BULLET_PARANATURAL",
@@ -36,11 +33,12 @@ SWEP.ParanaturalForms = {
 	["grip"] = include("forms/grip.lua"),
 	["shatter"] = include("forms/shatter.lua"),
 	["spin"] = include("forms/spin.lua"),
-	["pierce"] = include("forms/pierce.lua")
+	["pierce"] = include("forms/pierce.lua"),
+	["charge"] = include("forms/charge.lua")
 }
 SWEP.ParanaturalLastShot = 0
 SWEP.ParanaturalNextAmmoRegen = 0
-SWEP.ParanaturalForm = {Primary = {ClipSize = 0, Automatic = false, Delay = 0}, DoDrawCrosshair = function() end}
+SWEP.ParanaturalForm = {Primary = {ClipSize = 0, Automatic = false, Delay = 0, ReloadDelay = 10000}, DoDrawCrosshair = function() end}
 SWEP.ParanaturalFormName = "unknown"
 SWEP.ParanaturalFormIndex = 1
 SWEP.ParanaturalAttack = function() end
@@ -50,6 +48,15 @@ SWEP.ParanaturalZoom = 0
 SWEP.ParanaturalZooming = false
 SWEP.ParanaturalJustChangedForm = 0
 SWEP.ParanaturalCurrentForm = nil
+SWEP.ParanaturalLastApply = 0
+
+function SWEP:CalcViewModelView(vm, _, _, pos, ang)
+	--pos = pos + ang:Right() * 3 +
+	--			ang:Forward() * 100 --+
+	--			ang:Up() * -3
+	--ang = ang + Angle(0, 90, 0)
+    return pos, ang
+end
 
 function SWEP:Reload()
 	if CurTime() - self.ParanaturalJustChangedForm < 0.25 then return end
@@ -62,12 +69,12 @@ function SWEP:Reload()
 		self.ParanaturalCurrentForm = self:GetOwner():GetInfo("paranatural_weapon_form_1")
 	end
 	self:ApplyForm(self.ParanaturalCurrentForm)
-	self:CallOnClient("ApplyForm", self.ParanaturalCurrentForm)
+	if game.SinglePlayer() then self:CallOnClient("ApplyForm", self.ParanaturalCurrentForm) end
 end
 
 function SWEP:SecondaryAttack()
-	self:CallOnClient("SecondaryAttack")
-	if SERVER then self:GetOwner():SetFOV(30, 0.05, self) end
+	if game.SinglePlayer() then self:CallOnClient("SecondaryAttack") end
+	if CLIENT then self:GetOwner():SetFOV(30, 0.05, self) end
 	self.ParanaturalZoom = CurTime()
 	self.ParanaturalZooming = true
 end
@@ -80,29 +87,35 @@ function SWEP:Holster()
 end
 
 function SWEP:PrimaryAttack()
-	self:CallOnClient("PrimaryAttack")
 	if self:Clip1() <= 0 then
 		self.ParanaturalReloading = true
+		self:SendWeaponAnim(ACT_VM_HOLSTER)
 	end
+	if game.SinglePlayer() then self:CallOnClient("PrimaryAttack") end
 	if self:Clip1() >= self:GetMaxClip1() then self.ParanaturalReloading = false end
 	if self.ParanaturalReloading then return end
 	self:SetNextPrimaryFire(CurTime() + self.ParanaturalForm.Primary.Delay)
+	if self.ParanaturalAttack(self) then return end
 	self.ParanaturalLastShot = CurTime()
 	if CLIENT then return end
-	self.ParanaturalAttack(self)
 	self:TakePrimaryAmmo(1)
 end
+function SWEP:RenderOverride()
+	self:DrawModel()
+	self.WorldModel = self:GetNWString("WorldModel")
+	self:SetModel(self.WorldModel)
+end
 function SWEP:Think()
-	if self:Clip1() >= self:GetMaxClip1() then self.ParanaturalReloading = false end
+	if self:Clip1() >= self:GetMaxClip1() and self.ParanaturalReloading then self.ParanaturalReloading = false self:SendWeaponAnim(ACT_VM_DRAW) end
 
 	if CurTime() - self.ParanaturalZoom > FrameTime() * 5 and self.ParanaturalZooming then
-		if SERVER then self:GetOwner():SetFOV(0, 0.1, self) end
+		if CLIENT then self:GetOwner():SetFOV(0, 0.1, self) end
 		self.ParanaturalZooming = false
 	end
 
-	if CLIENT then return end
-
 	self.ParanaturalThink(self)
+
+	if CLIENT then return end
 
 	if CurTime() - self.ParanaturalLastShot < 3 and not self.ParanaturalReloading then return end
 	if CurTime() - self.ParanaturalNextAmmoRegen < self.ParanaturalForm.Primary.ReloadDelay then return end
@@ -118,24 +131,42 @@ function SWEP:DoDrawCrosshair(x, y)
 end
 
 function SWEP:ApplyForm(formname)
-	self.ParanaturalCurrentForm = formname
-	print(self.ParanaturalCurrentForm)
+	if CurTime() - self.ParanaturalLastApply < 1 then return end
 	local form = self.ParanaturalForms[formname]
-	print(not form)
 	if not form then return end
-	local clip = self:Clip1() / (self.Primary.ClipSize / form.Primary.ClipSize)
-	self.Primary.ClipSize = form.Primary.ClipSize
-	self.Primary.Automatic = form.Primary.Automatic
-	self.ParanaturalAttack = form.Attack
-	self.ParanaturalThink = form.Think
 	self.ParanaturalForm = form
+	self:SetNWString("WorldModel", form.Model)
 	self.ParanaturalFormName = formname
-	if CLIENT then return end
-	self:SetClip1(clip)
+	--if form.Model == self:GetModel() then return end
+	self.ParanaturalCurrentForm = formname
+	self.ParanaturalLastApply = CurTime()
+	self:SendWeaponAnim(ACT_VM_HOLSTER)
+	timer.Simple(0.5, function()
+		self:SendWeaponAnim(ACT_VM_DRAW)
+		self.ParanaturalCurrentForm = formname
+		local clip = self:Clip1() / (self.Primary.ClipSize / form.Primary.ClipSize)
+		self.Primary.ClipSize = form.Primary.ClipSize
+		self.Primary.Automatic = form.Primary.Automatic
+		self.ParanaturalAttack = form.Attack
+		self.ParanaturalThink = form.Think
+		if IsValid(self:GetOwner()) then
+			self:GetOwner():GetViewModel():SetModel(form.Model)
+		end
+		self:SetModel(form.Model)
+		self.WorldModel = form.Model
+		self:SetNWString("WorldModel", self.WorldModel)
+		self.ViewModel = form.Model
+		self.ParanaturalForm = form
+		self.ParanaturalFormName = formname
+		if CLIENT then return end
+		self:SetClip1(clip)
+	end)
 end
 
 function SWEP:Deploy()
-	self.ParanaturalCurrentForm = self.ParanaturalCurrentForm or self:GetOwner():GetInfo("paranatural_weapon_form_1")
+	self.ParanaturalCurrentForm = self.ParanaturalCurrentForm or self:GetOwner():GetInfo("paranatural_weapon_form_1") or "grip"
 	self:ApplyForm(self.ParanaturalCurrentForm)
-	timer.Simple(0.1, function() self:CallOnClient("ApplyForm", self.ParanaturalCurrentForm) end)
+	if game.SinglePlayer() then
+		timer.Simple(0.5, function() if not IsValid(self) then return end self:CallOnClient("ApplyForm", self.ParanaturalCurrentForm) end)
+	end
 end

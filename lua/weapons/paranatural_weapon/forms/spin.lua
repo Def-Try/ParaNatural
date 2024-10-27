@@ -7,9 +7,11 @@ local calm = 0
 local w = 4
 
 return {
-	Primary = {ClipSize = 30, Automatic = true, Delay = 0.07, ReloadDelay = 0.07},
+	Model = "models/paranatural/serviceweapon/c_spin.mdl",
+	Primary = {ClipSize = 30, Automatic = true, Delay = 0.07, ReloadDelay = 5 / 30},
 	Attack = function(self)
-		self.Weapon:EmitSound("Weapon_AR2.Single")
+		self:EmitSound("paranatural/serviceweapon/spin_shot_"..math.random(1,5)..".wav", 75, 100, 1, CHAN_STATIC)
+
 		self:ShootBullet(5, 1, 0.01)
 		self:GetOwner():ViewPunch(Angle(-1 * 0.07, 0, 0))
 	end,

@@ -6,9 +6,10 @@ local handled = 0
 local calm = 0
 local w = 4
 return {
-	Primary = {ClipSize = 14, Automatic = false, Delay = 0.1, ReloadDelay = 0.1},
+	Model = "models/paranatural/serviceweapon/c_grip.mdl",
+	Primary = {ClipSize = 14, Automatic = false, Delay = 0.1, ReloadDelay = 5 / 14},
 	Attack = function(self)
-		self.Weapon:EmitSound("Weapon_Pistol.Single")
+		self.Weapon:EmitSound("paranatural/serviceweapon/grip_shot_"..math.random(1, 2)..".wav", 75, 100, 1, CHAN_WEAPON)
 		self:ShootBullet(15, 1, 0.01)
 		self:GetOwner():ViewPunch(Angle(-1, 0, 0))
 	end,

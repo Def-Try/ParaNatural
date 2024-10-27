@@ -1,0 +1,57 @@
+"astral_challange"
+{
+    "base"          "base"
+    "title"         "Astral Challange"
+    "maps"          "^ac_"
+    "category"      "pve"
+    "menusystem"    "0"
+    "workshopid"    ""
+    "settings"
+    {
+        1
+        {
+            "name"          "ac_enable_serviceweapon"
+            "help"          "Enable Service Weapon"
+            "text"          "Enable Service Weapon"
+            "type"          "CheckBox"
+            "default"       "1"
+            "singleplayer"  "1"
+        }
+        2
+        {
+            "name"          "ac_enable_abil_levitation"
+            "help"          "Enable levitation ability"
+            "text"          "Enable levitation ability"
+            "type"          "CheckBox"
+            "default"       "1"
+            "singleplayer"  "1"
+        }
+        3
+        {
+            "name"          "ac_enable_abil_telekinesis"
+            "help"          "Enable telekinesis ability"
+            "text"          "Enable telekinesis ability"
+            "type"          "CheckBox"
+            "default"       "1"
+            "singleplayer"  "1"
+        }
+        4
+        {
+            "name"          "ac_enable_abil_shield"
+            "help"          "Enable shield ability"
+            "text"          "Enable shield ability"
+            "type"          "CheckBox"
+            "default"       "1"
+            "singleplayer"  "1"
+        }
+        5
+        {
+            "name"          "ac_enable_abil_dash"
+            "help"          "Enable dash ability"
+            "text"          "Enable dash ability"
+            "type"          "CheckBox"
+            "default"       "1"
+            "singleplayer"  "1"
+        }
+    }
+}

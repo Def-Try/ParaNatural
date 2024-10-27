@@ -1,0 +1,20 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/paranatural/serviceweapon/shatter/shatter"
+	"$bumpmap" "models/paranatural/serviceweapon/shatter/shatter_n"
+
+	"$ambientocclusion" ".7"
+	"$color2" ".8"
+	
+	"$phongdisablehalflambert" "1"
+	"$phong" "1"
+	"$phongboost" "8"
+	"$phongtint" "[.933 .828 .318]"
+	"$phongfresnelranges" "[.76 .88 1]"
+	"$phongexponenttexture"  "models/paranatural/serviceweapon/shatter/shatter_exp"
+
+	"$envmap" "models/paranatural/serviceweapon/softsilver.hdr"
+	"$normalmapalphaenvmapmask"		"1"
+	"$envmaptint"	"[.15 .145 .125]"
+	"$envmapfresnel"	"1"	
+}

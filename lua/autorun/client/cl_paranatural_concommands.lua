@@ -1,24 +1,59 @@
 hook.Add("PopulateToolMenu", "paranatural", function()
+    local allow_telekinesis, allow_shield, allow_levitation, allow_dash
     spawnmenu.AddToolMenuOption("Utilities", "Paranatural", "paranatural_a_settings", "Server Settings", "", "", function(panel)
         panel:Clear()
         panel:Help("This tab will NOT do anything if you don't have admin permissions on the server.")
-        local allow_telekinesis = panel:CheckBox("Allow Telekinesis usage to everyone", "")
+        allow_telekinesis = panel:CheckBox("Allow Telekinesis usage to everyone", "")
         panel:ControlHelp("If unchecked, will limit usage to only admins.")
-        local allow_shield = panel:CheckBox("Allow Shield usage to everyone", "")
+        allow_shield = panel:CheckBox("Allow Shield usage to everyone", "")
         panel:ControlHelp("If unchecked, will limit usage to only admins.")
-        local allow_dash = panel:CheckBox("Allow Dash usage to everyone", "")
+        allow_dash = panel:CheckBox("Allow Dash usage to everyone", "")
         panel:ControlHelp("If unchecked, will limit usage to only admins.")
-        local allow_levitation = panel:CheckBox("Allow Levitation usage to everyone", "")
+        allow_levitation = panel:CheckBox("Allow Levitation usage to everyone", "")
         panel:ControlHelp("If unchecked, will limit usage to only admins.")
 
-        function allow_telekinesis:OnChange(val) LocalPlayer():ConCommand("paranatural_admincontrol allow_everyone telekinesis "..(val and 1 or 0)) end
+        function allow_telekinesis:OnChange(val)
+            net.Start("paranatural")
+                net.WriteUInt(1, 1)
+                net.WriteString("paranatural_telekinesis_allowed")
+                net.WriteString(val and "1" or "0")
+            net.SendToServer()
+        end
         allow_telekinesis:SetConVar(nil)
-        function allow_shield:OnChange(val) LocalPlayer():ConCommand("paranatural_admincontrol allow_everyone shield "..(val and 1 or 0)) end
+        function allow_shield:OnChange(val) 
+            net.Start("paranatural")
+                net.WriteUInt(1, 1)
+                net.WriteString("paranatural_shield_allowed")
+                net.WriteString(val and "1" or "0")
+            net.SendToServer() end
         allow_shield:SetConVar(nil)
-        function allow_dash:OnChange(val) LocalPlayer():ConCommand("paranatural_admincontrol allow_everyone dash "..(val and 1 or 0)) end
+        function allow_dash:OnChange(val) 
+            net.Start("paranatural")
+                net.WriteUInt(1, 1)
+                net.WriteString("paranatural_dash_allowed")
+                net.WriteString(val and "1" or "0")
+            net.SendToServer() end
         allow_dash:SetConVar(nil)
-        function allow_levitation:OnChange(val) LocalPlayer():ConCommand("paranatural_admincontrol allow_everyone levitation "..(val and 1 or 0)) end
+        function allow_levitation:OnChange(val) 
+            net.Start("paranatural")
+                net.WriteUInt(1, 1)
+                net.WriteString("paranatural_levitation_allowed")
+                net.WriteString(val and "1" or "0")
+            net.SendToServer() end
         allow_levitation:SetConVar(nil)
+
+        net.Start("paranatural") net.WriteUInt(0, 1) net.WriteString("paranatural_telekinesis_allowed") net.SendToServer()
+        net.Start("paranatural") net.WriteUInt(0, 1) net.WriteString("paranatural_shield_allowed") net.SendToServer()
+        net.Start("paranatural") net.WriteUInt(0, 1) net.WriteString("paranatural_dash_allowed") net.SendToServer()
+        net.Start("paranatural") net.WriteUInt(0, 1) net.WriteString("paranatural_levitation_allowed") net.SendToServer()
+
+        net.Receive("paranatural", function(_, ply)
+            local cv, val = net.ReadString(), net.ReadString() == "1"
+            if cv == "paranatural_telekinesis_allowed" then allow_telekinesis:SetValue(val) end
+            if cv == "paranatural_shield_allowed" then allow_shield:SetValue(val) end
+            if cv == "paranatural_dash_allowed" then allow_dash:SetValue(val) end
+            if cv == "paranatural_levitation_allowed" then allow_levitation:SetValue(val) end
+        end)
     end)
     spawnmenu.AddToolMenuOption("Utilities", "Paranatural", "paranatural_settings", "Settings", "", "", function(panel)
         panel:Clear()
@@ -39,7 +74,7 @@ hook.Add("PopulateToolMenu", "paranatural", function()
         panel:KeyBinder("Shield", "paranatural_shield_key")
         panel:KeyBinder("Dash", "paranatural_dash_key")
     end)
-    do return end -- do not generate service weapon forms
+
     spawnmenu.AddToolMenuOption("Utilities", "Paranatural", "paranatural_sw_forms", "Service Weapon: Forms", "", "", function(panel)
         panel:Clear()
         panel:Help("Form #1")
@@ -51,6 +86,8 @@ hook.Add("PopulateToolMenu", "paranatural", function()
         panel:ControlHelp("A form similar to a shotgun with a wide blast radius, but shorter effective range.")
         panel:Button("Pierce", "paranatural_weapon_form_1", "pierce")
         panel:ControlHelp("A form that charges a powerful, single shot that can one-shot or significantly damage many enemies.")
+        panel:Button("Charge", "paranatural_weapon_form_1", "charge")
+        panel:ControlHelp("A form that shoots explosives. Can damage owner as well, take care.")
         panel:Help("Form #2")
         panel:Button("Grip", "paranatural_weapon_form_2", "grip")
         panel:ControlHelp("A standard sidearm form similar to a revolver. It has high accuracy and single-shot damage.")
@@ -60,35 +97,14 @@ hook.Add("PopulateToolMenu", "paranatural", function()
         panel:ControlHelp("A form similar to a shotgun with a wide blast radius, but shorter effective range.")
         panel:Button("Pierce", "paranatural_weapon_form_2", "pierce")
         panel:ControlHelp("A form that charges a powerful, single shot that can one-shot or significantly damage many enemies.")
+        panel:Button("Charge", "paranatural_weapon_form_2", "charge")
+        panel:ControlHelp("A form that shoots explosives. Can damage owner as well, take care.")
     end)
 end)
-
-local telekinesis = CreateClientConVar("paranatural_telekinesis_key", "30", true, false)
-local shield = CreateClientConVar("paranatural_shield_key", "31", true, false)
-local dash = CreateClientConVar("paranatural_dash_key", "12", true, false)
 
 local telekinesis_enable = CreateClientConVar("paranatural_telekinesis_enable", "1", true, true)
 local shield_enable = CreateClientConVar("paranatural_shield_enable", "1", true, true)
 local dash_enable = CreateClientConVar("paranatural_dash_enable", "1", true, true)
 local levitation_enable = CreateClientConVar("paranatural_levitation_enable", "1", true, true)
---[[
-    local form_1 = CreateClientConVar("paranatural_weapon_form_1", "grip", true, true)
-    local form_2 = CreateClientConVar("paranatural_weapon_form_2", "spin", true, true)
-]]
-
-local keys = {telekinesis=false, shield=false, dash=false}
-hook.Add("Think", "paranatural_control", function()
-    if vgui.CursorVisible() then return end
-    if telekinesis_enable:GetBool() and keys.telekinesis and not input.IsButtonDown(telekinesis:GetInt()) then
-        LocalPlayer():ConCommand("paranatural_control key telekinesis")
-    end
-    if shield_enable:GetBool() and keys.shield and not input.IsButtonDown(shield:GetInt()) then
-        LocalPlayer():ConCommand("paranatural_control key shield")
-    end
-    if dash_enable:GetBool() and keys.dash and not input.IsButtonDown(dash:GetInt()) then
-        LocalPlayer():ConCommand("paranatural_control key dash")
-    end
-    keys.telekinesis = input.IsButtonDown(telekinesis:GetInt())
-    keys.shield = input.IsButtonDown(shield:GetInt())
-    keys.dash = input.IsButtonDown(dash:GetInt())
-end)
+local form_1 = CreateClientConVar("paranatural_weapon_form_1", "grip", true, true)
+local form_2 = CreateClientConVar("paranatural_weapon_form_2", "spin", true, true)
