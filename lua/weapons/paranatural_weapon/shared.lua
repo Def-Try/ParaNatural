@@ -38,17 +38,26 @@ SWEP.ParanaturalForms = {
 }
 SWEP.ParanaturalLastShot = 0
 SWEP.ParanaturalNextAmmoRegen = 0
-SWEP.ParanaturalForm = {Primary = {ClipSize = 0, Automatic = false, Delay = 0, ReloadDelay = 10000}, DoDrawCrosshair = function() end}
+SWEP.ParanaturalForm = {Primary = {ClipSize = 0, Automatic = false, Delay = 0, ReloadDelay = 10000}, DoDrawCrosshair = function(...) end}
 SWEP.ParanaturalFormName = "unknown"
 SWEP.ParanaturalFormIndex = 1
-SWEP.ParanaturalAttack = function() end
-SWEP.ParanaturalThink = function() end
+SWEP.ParanaturalAttack = function(...) end
+SWEP.ParanaturalThink = function(...) end
 SWEP.ParanaturalReloading = false
 SWEP.ParanaturalZoom = 0
 SWEP.ParanaturalZooming = false
 SWEP.ParanaturalJustChangedForm = 0
 SWEP.ParanaturalCurrentForm = nil
 SWEP.ParanaturalLastApply = 0
+
+function SWEP:ParanaturalGetOwner()
+	local owner = self:GetOwner()
+	if owner:IsNPC() then return end -- NPCs not allowed to change form
+	---@diagnostic disable-next-line: undefined-field
+	if owner:IsNextBot() and not owner.ParanaturalCanUseServiceWeapon then return end
+	---@cast owner Player
+	return owner
+end
 
 function SWEP:CalcViewModelView(vm, _, _, pos, ang)
 	--pos = pos + ang:Right() * 3 +
@@ -61,12 +70,14 @@ end
 function SWEP:Reload()
 	if CurTime() - self.ParanaturalJustChangedForm < 0.25 then return end
 	self.ParanaturalJustChangedForm = CurTime()
+	local owner = self:ParanaturalGetOwner()
+	if not owner then return end
 	if self.ParanaturalFormIndex ~= 2 then
 		self.ParanaturalFormIndex = 2
-		self.ParanaturalCurrentForm = self:GetOwner():GetInfo("paranatural_weapon_form_2")
+		self.ParanaturalCurrentForm = owner:GetInfo("paranatural_weapon_form_2")
 	else
 		self.ParanaturalFormIndex = 1
-		self.ParanaturalCurrentForm = self:GetOwner():GetInfo("paranatural_weapon_form_1")
+		self.ParanaturalCurrentForm = owner:GetInfo("paranatural_weapon_form_1")
 	end
 	self:ApplyForm(self.ParanaturalCurrentForm)
 	if game.SinglePlayer() then self:CallOnClient("ApplyForm", self.ParanaturalCurrentForm) end
@@ -74,14 +85,18 @@ end
 
 function SWEP:SecondaryAttack()
 	if game.SinglePlayer() then self:CallOnClient("SecondaryAttack") end
-	if CLIENT then self:GetOwner():SetFOV(30, 0.05, self) end
+	local owner = self:ParanaturalGetOwner()
+	if not owner then return end
+	if CLIENT then owner:SetFOV(30, 0.05, self) end
 	self.ParanaturalZoom = CurTime()
 	self.ParanaturalZooming = true
 end
 
 function SWEP:Holster()
 	if not self.ParanaturalZooming then return true end
-	if SERVER then self:GetOwner():SetFOV(0, 0.1, self) end
+	local owner = self:ParanaturalGetOwner()
+	if not owner then return end
+	if SERVER then owner:SetFOV(0, 0.1, self) end
 	self.ParanaturalZooming = false
 	return true
 end
@@ -108,8 +123,11 @@ end
 function SWEP:Think()
 	if self:Clip1() >= self:GetMaxClip1() and self.ParanaturalReloading then self.ParanaturalReloading = false self:SendWeaponAnim(ACT_VM_DRAW) end
 
+	local owner = self:ParanaturalGetOwner()
+	if not owner then return end
+
 	if CurTime() - self.ParanaturalZoom > FrameTime() * 5 and self.ParanaturalZooming then
-		if CLIENT then self:GetOwner():SetFOV(0, 0.1, self) end
+		if CLIENT then owner:SetFOV(0, 0.1, self) end
 		self.ParanaturalZooming = false
 	end
 
@@ -149,8 +167,10 @@ function SWEP:ApplyForm(formname)
 		self.Primary.Automatic = form.Primary.Automatic
 		self.ParanaturalAttack = form.Attack
 		self.ParanaturalThink = form.Think
-		if IsValid(self:GetOwner()) then
-			self:GetOwner():GetViewModel():SetModel(form.Model)
+		local owner = self:ParanaturalGetOwner()
+		if not owner then return end
+		if IsValid(owner) then
+			owner:GetViewModel():SetModel(form.Model)
 		end
 		self:SetModel(form.Model)
 		self.WorldModel = form.Model
@@ -164,7 +184,9 @@ function SWEP:ApplyForm(formname)
 end
 
 function SWEP:Deploy()
-	self.ParanaturalCurrentForm = self.ParanaturalCurrentForm or self:GetOwner():GetInfo("paranatural_weapon_form_1") or "grip"
+	local owner = self:ParanaturalGetOwner()
+	if not owner then return end
+	self.ParanaturalCurrentForm = self.ParanaturalCurrentForm or owner:GetInfo("paranatural_weapon_form_1") or "grip"
 	self:ApplyForm(self.ParanaturalCurrentForm)
 	if game.SinglePlayer() then
 		timer.Simple(0.5, function() if not IsValid(self) then return end self:CallOnClient("ApplyForm", self.ParanaturalCurrentForm) end)

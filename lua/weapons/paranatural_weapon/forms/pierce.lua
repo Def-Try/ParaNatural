@@ -7,6 +7,7 @@ local w = 4
 local shot = 0
 local calm = 0
 local delay = 0
+local handled = 0
 return {
 	Model = "models/paranatural/serviceweapon/c_pierce.mdl",
 	Primary = {ClipSize = 2, Automatic = true, Delay = 0.1, ReloadDelay = 5 / 2},

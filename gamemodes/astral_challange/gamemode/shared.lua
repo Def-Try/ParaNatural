@@ -19,5 +19,6 @@ function GM:PlayerSpawn(ply, transition)
 
     hook.Call("PlayerSetModel", GAMEMODE, ply)
 
-    ply:SetupHands()
+    ---@diagnostic disable-next-line: param-type-mismatch
+    ply:SetupHands(nil)
 end

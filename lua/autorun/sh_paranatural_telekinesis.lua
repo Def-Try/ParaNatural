@@ -228,7 +228,7 @@ hook.Add("SetupMove", "paranatural_telekinesis", function(ply, mv)
 			ply:EmitSound("paranatural/telekinesis/drop.wav", 75, 100, 1, CHAN_STATIC)
 		end
 
-		vel = (hold - phys:GetPos()) / 5
+		local vel = (hold - phys:GetPos()) / 5
 
 		local dang = (ply:EyeAngles() - phys:GetAngles())
 		dang:Normalize()
