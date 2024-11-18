@@ -208,24 +208,31 @@ hook.Add("SetupMove", "paranatural_telekinesis", function(ply, mv)
 					+ offsets[_].y * ang:Forward() * (size + 10)
 					+ offsets[_].z * ang:Up() * size
 
-		if CurTime() - ent:GetNWFloat("paranatural_tk_grabbed", -1) > 3 and ent:GetPos():Distance(hold) > size * 4 then
-			ply:SetNWEntity("paranatural_tk_entity_".._, nil)
-			if count == 1 then
-				if ply:GetActiveWeapon():GetClass() == "paranatural_telekinetic" then
-					ply:SelectWeapon(ply.paranatural_wasactiveweapon)
-					ply.paranatural_wasactiveweapon = nil
+		if ent:GetPos():Distance(hold) > size * 4 then
+			ent.paranatural_toofar = ent.paranatural_toofar or CurTime()
+			if CurTime() - ent.paranatural_toofar > 5 then
+				ply:SetNWEntity("paranatural_tk_entity_".._, nil)
+				if count == 1 then
+					if ply:GetActiveWeapon():GetClass() == "paranatural_telekinetic" then
+						ply:SelectWeapon(ply.paranatural_wasactiveweapon)
+						ply.paranatural_wasactiveweapon = nil
+					end
+					ply:StripWeapon("paranatural_telekinetic")
 				end
-				ply:StripWeapon("paranatural_telekinetic")
+				ent:SetNWFloat("paranatural_tk_grabbed", -1)
+				for n=0,ent:GetPhysicsObjectCount()-1 do
+					local phys = ent:GetPhysicsObjectNum(n)
+					phys:EnableGravity(ent.paranatural_tk_hadgravity)
+					phys:ClearGameFlag(FVPHYSICS_PLAYER_HELD)
+				end
+				ent:SetOwner(NULL)
+				ent:StopSound("paranatural/telekinesis/loop.wav")
+				ply:EmitSound("paranatural/telekinesis/drop.wav", 75, 100, 1, CHAN_STATIC)
+				ent.paranatural_toofar = nil
+				return
 			end
-			ent:SetNWFloat("paranatural_tk_grabbed", -1)
-			for n=0,ent:GetPhysicsObjectCount()-1 do
-				local phys = ent:GetPhysicsObjectNum(n)
-				phys:EnableGravity(ent.paranatural_tk_hadgravity)
-				phys:ClearGameFlag(FVPHYSICS_PLAYER_HELD)
-			end
-			ent:SetOwner(NULL)
-			ent:StopSound("paranatural/telekinesis/loop.wav")
-			ply:EmitSound("paranatural/telekinesis/drop.wav", 75, 100, 1, CHAN_STATIC)
+		else
+			ent.paranatural_toofar = nil
 		end
 
 		local vel = (hold - phys:GetPos()) / 5

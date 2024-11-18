@@ -1,11 +1,10 @@
+---@diagnostic disable: inject-field
 local allowed 
 
 if CLIENT then
 	CreateClientConVar("paranatural_shield_key", "17", true, true) -- default key: G
 end
-if SERVER then
-	allowed = CreateConVar("paranatural_shield_allowed", "1", FCVAR_ARCHIVE + FCVAR_REPLICATED)
-end
+allowed = CreateConVar("paranatural_shield_allowed", "1", FCVAR_ARCHIVE + FCVAR_REPLICATED)
 
 -- stopsound already implemented in sh_paranatural_telekinesis.lua
 
@@ -35,41 +34,14 @@ local material_lookup = {
 	[MAT_WARPSHIELD]="paranatural/shield_mats/shell.vmt",
 }
 
--- please forgive me for detouring global functions for a silly mod :sob:
-if SERVER then
-	util.AddNetworkString("paranatural_emitsound")
-	hook.Add("EntityEmitSound", "paranatural_shield_sound", function(data)
-		--PrintTable(data)
-		net.Start("paranatural_emitsound")
-			net.WriteString(data.SoundName)
-			net.WriteString(data.OriginalSoundName)
-			net.WriteDouble(data.SoundTime)
-			net.WriteUInt(data.DSP, 8)
-			net.WriteUInt(data.SoundLevel, 9)
-			net.WriteUInt(data.Pitch, 8)
-			net.WriteUInt(data.Flags, 10)
-			net.WriteUInt(data.Channel, 8)
-			net.WriteDouble(data.Volume)
-			net.WriteEntity(data.Entity)
-			net.WriteVector(data.Pos or Vector())
-		net.Broadcast()
-		--if not CLIENT then return end
-		--if not LocalPlayer():GetNWBool("paranatural_shielded") then return end
-		--PrintTable(data)
-		--data.DSP = 16
-		--data.Pitch = 75
-		--return true
-	end)
-end
-
 hook.Add("PlayerButtonDown", "paranatural_shield", function(ply, button)
 	if IsValid(ply:GetNWEntity("paranatural_tk_entity_1")) then return end
 	if CurTime() - ply:GetNWFloat("paranatural_cooldown", 0) <= 0.2 then return end
 	ply:SetNWFloat("paranatural_cooldown", CurTime())
-	if CLIENT then return end
 	if not allowed:GetBool() and not ply:IsAdmin() then return end
 	if not IsFirstTimePredicted() then return end
 	if button == 107 and ply:GetNWBool("paranatural_shielded") then -- throw
+		if CLIENT then return ply:SetDSP(0) end
 		local entities = {
 			ply:GetNWEntity("paranatural_sh_entity_1"), ply:GetNWEntity("paranatural_sh_entity_2"),
 			ply:GetNWEntity("paranatural_sh_entity_3"), ply:GetNWEntity("paranatural_sh_entity_4"),
@@ -113,6 +85,7 @@ hook.Add("PlayerButtonDown", "paranatural_shield", function(ply, button)
 	end
 	if button ~= ply:GetInfoNum("paranatural_shield_key", 17) then return end
 	if ply:GetNWBool("paranatural_shielded") then
+		if CLIENT then return ply:SetDSP(0) end
 		local entities = {
 			ply:GetNWEntity("paranatural_sh_entity_1"), ply:GetNWEntity("paranatural_sh_entity_2"),
 			ply:GetNWEntity("paranatural_sh_entity_3"), ply:GetNWEntity("paranatural_sh_entity_4"),
@@ -147,6 +120,7 @@ hook.Add("PlayerButtonDown", "paranatural_shield", function(ply, button)
 		end
 		ply:SetNWBool("paranatural_shielded", false)
 	else
+		if CLIENT then return ply:SetDSP(14) end
 		ply:EmitSound("paranatural/shield/raise.wav", 75, 100, 1, CHAN_STATIC)
 		if IsValid(ply:GetActiveWeapon()) then
 			ply.paranatural_sh_activewep = ply:GetActiveWeapon():GetClass()
