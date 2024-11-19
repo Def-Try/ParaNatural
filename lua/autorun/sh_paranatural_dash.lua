@@ -21,7 +21,8 @@ hook.Add("ShouldCollide", "paranatural_dash", function(ent1, ent2)
 	if not ent.TakeDamage then return end
 	local _1, _2, _3 = util.IntersectRayWithOBB(ply:GetShootPos(), ply:GetVelocity():GetNormal() * 500, ent:GetPos() + ent:OBBCenter(), ent:GetAngles(), ent:OBBMins(), ent:OBBMaxs())
 	if _1 == nil and _2 == nil and _3 == nil then return end
-	ent:TakeDamage(100, ply, ply)
+	timer.Simple(0, function() ent:TakeDamage(100, ply, ply) end)
+	return false
 end)
 
 hook.Add("CalcMainActivity", "paranatural_calcactivity_dash", function(ply, vel)
@@ -56,6 +57,11 @@ hook.Add("PlayerButtonDown", "paranatural_dash", function(ply, button)
 	ply:SetCustomCollisionCheck(true)
 	ply.paranatural_dashing_colset = wasccc
 
+	if not ply.m_OldCollisionGroup then ply.m_OldCollisionGroup = ply:GetCollisionGroup() end
+	ply:SetCollisionGroup(ply.m_OldCollisionGroup == COLLISION_GROUP_DEBRIS and COLLISION_GROUP_WORLD or COLLISION_GROUP_DEBRIS)
+	ply:SetCollisionGroup(ply.m_OldCollisionGroup)
+	ply.m_OldCollisionGroup = nil
+
 	if SERVER and IsFirstTimePredicted() then
 		ply:EmitSound("paranatural/dash/whoosh" .. math.random(1, 3) .. ".wav", 75, 100, 1, CHAN_STATIC)
 	end
@@ -76,6 +82,10 @@ hook.Add("SetupMove", "paranatural_dash", function(ply)
 	end
 	if ply.paranatural_dashing_colset and CurTime() - time > 0.5 then
 		ply:SetCustomCollisionCheck(ply.paranatural_dashing_colset)
+		if not ply.m_OldCollisionGroup then ply.m_OldCollisionGroup = ply:GetCollisionGroup() end
+		ply:SetCollisionGroup(ply.m_OldCollisionGroup == COLLISION_GROUP_DEBRIS and COLLISION_GROUP_WORLD or COLLISION_GROUP_DEBRIS)
+		ply:SetCollisionGroup(ply.m_OldCollisionGroup)
+		ply.m_OldCollisionGroup = nil
 		ply.paranatural_dashing_colset = false
 	end
 end)
