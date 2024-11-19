@@ -87,7 +87,9 @@ function SWEP:SecondaryAttack()
 	if game.SinglePlayer() then self:CallOnClient("SecondaryAttack") end
 	local owner = self:ParanaturalGetOwner()
 	if not owner then return end
-	if CLIENT then owner:SetFOV(30, 0.05, self) end
+	if not self.ParanaturalZooming then
+		owner:SetFOV(30, 0.05, self)
+	end
 	self.ParanaturalZoom = CurTime()
 	self.ParanaturalZooming = true
 end
@@ -96,7 +98,7 @@ function SWEP:Holster()
 	if not self.ParanaturalZooming then return true end
 	local owner = self:ParanaturalGetOwner()
 	if not owner then return end
-	if SERVER then owner:SetFOV(0, 0.1, self) end
+	if CLIENT then owner:SetFOV(0, 0.1, self) end
 	self.ParanaturalZooming = false
 	return true
 end
@@ -126,8 +128,8 @@ function SWEP:Think()
 	local owner = self:ParanaturalGetOwner()
 	if not owner then return end
 
-	if CurTime() - self.ParanaturalZoom > FrameTime() * 5 and self.ParanaturalZooming then
-		if CLIENT then owner:SetFOV(0, 0.1, self) end
+	if CurTime() - self.ParanaturalZoom > engine.TickInterval() * 5 and self.ParanaturalZooming then
+		owner:SetFOV(0, 0.1, self)
 		self.ParanaturalZooming = false
 	end
 
@@ -160,7 +162,6 @@ function SWEP:ApplyForm(formname)
 	self.ParanaturalLastApply = CurTime()
 	self:SendWeaponAnim(ACT_VM_HOLSTER)
 	timer.Simple(0.5, function()
-		self:SendWeaponAnim(ACT_VM_DRAW)
 		self.ParanaturalCurrentForm = formname
 		local clip = self:Clip1() / (self.Primary.ClipSize / form.Primary.ClipSize)
 		self.Primary.ClipSize = form.Primary.ClipSize
@@ -179,6 +180,8 @@ function SWEP:ApplyForm(formname)
 		self.ParanaturalForm = form
 		self.ParanaturalFormName = formname
 		if CLIENT then return end
+		
+		self:SendWeaponAnim(ACT_VM_DRAW)
 		self:SetClip1(clip)
 	end)
 end
@@ -191,7 +194,6 @@ function SWEP:Deploy(called)
 	if CLIENT and not called then return self:DeployClient() end
 	self:CallOnClient("DeployClient")
 	local owner = self:ParanaturalGetOwner()
-	print(owner)
 	if not owner then return end
 	self.ParanaturalCurrentForm = self.ParanaturalCurrentForm or owner:GetInfo("paranatural_weapon_form_1") or "grip"
 	self:ApplyForm(self.ParanaturalCurrentForm)

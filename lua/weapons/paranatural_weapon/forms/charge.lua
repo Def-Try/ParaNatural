@@ -9,7 +9,7 @@ return {
 	Model = "models/paranatural/serviceweapon/c_charge.mdl",
 	Primary = {ClipSize = 3, Automatic = false, Delay = 0.4, ReloadDelay = 5 / 3},
 	Attack = function(self)
-		self:EmitSound("paranatural/serviceweapon/charge_shot.wav", 75, 100, 1, CHAN_WEAPON)
+		self:EmitSound("paranatural/serviceweapon/charge_shot.wav", 75, math.random(75, 125), 1, CHAN_STATIC)
 		if SERVER then
 			local g = ents.Create("npc_grenade_frag")
 			g:SetPos(util.QuickTrace(self:GetOwner():EyePos(), self:GetOwner():GetAimVector() * 50, self:GetOwner()).HitPos - self:GetOwner():GetAimVector()*5)

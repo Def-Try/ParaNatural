@@ -9,7 +9,7 @@ return {
 	Model = "models/paranatural/serviceweapon/c_grip.mdl",
 	Primary = {ClipSize = 14, Automatic = false, Delay = 0.1, ReloadDelay = 5 / 14},
 	Attack = function(self)
-		self.Weapon:EmitSound("paranatural/serviceweapon/grip_shot_"..math.random(1, 2)..".wav", 75, 100, 1, CHAN_WEAPON)
+		self.Weapon:EmitSound("paranatural/serviceweapon/grip_shot_"..math.random(1, 2)..".wav", 75, math.random(90, 110), 1, CHAN_STATIC)
 		self:ShootBullet(15, 1, 0.01)
 		self:GetOwner():ViewPunch(Angle(-1, 0, 0))
 	end,

@@ -9,7 +9,7 @@ return {
 	Model = "models/paranatural/serviceweapon/c_shatter.mdl",
 	Primary = {ClipSize = 6, Automatic = false, Delay = 0.4, ReloadDelay = 5 / 6},
 	Attack = function(self)
-		self:EmitSound("paranatural/serviceweapon/shatter_shot.wav", 75, 100, 1, CHAN_WEAPON)
+		self:EmitSound("paranatural/serviceweapon/shatter_shot.wav", 75, math.random(75, 125), 1, CHAN_STATIC)
 		self:ShootBullet(30, 10, self.ParanaturalZooming and 0.05 or 0.15)
 		self:GetOwner():ViewPunch(Angle(-1, 0, 0))
 	end,

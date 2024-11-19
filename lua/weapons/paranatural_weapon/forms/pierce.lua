@@ -14,7 +14,7 @@ return {
 	Attack = function(self)
 		if CurTime() - delay < 0 then self:SetClip1(self:Clip1() + 1) return end
 		if charge == 0 then
-			self:EmitSound("paranatural/serviceweapon/pierce_charge.wav", 75, 100, 1, CHAN_WEAPON)
+			self:EmitSound("paranatural/serviceweapon/pierce_charge.wav", 75, math.random(95, 105), 1, CHAN_WEAPON)
 		end
 		if not IsFirstTimePredicted() then return end
 		--self:ShootBullet(15, 1, 0.01)
@@ -33,7 +33,7 @@ return {
 			if SERVER then self:TakePrimaryAmmo(1) end
 			charge = 0
 			delay = CurTime() + 3
-			self:EmitSound("paranatural/serviceweapon/pierce_shot.wav", 75, 100, 1, CHAN_STATIC)
+			self:EmitSound("paranatural/serviceweapon/pierce_shot.wav", 75, math.random(75, 125), 1, CHAN_STATIC)
 			self:StopSound("paranatural/serviceweapon/pierce_charge.wav")
 
 			self:SendWeaponAnim(ACT_VM_PRIMARYATTACK)
