@@ -183,8 +183,15 @@ function SWEP:ApplyForm(formname)
 	end)
 end
 
-function SWEP:Deploy()
+function SWEP:DeployClient()
+	self:Deploy(true)
+end
+
+function SWEP:Deploy(called)
+	if CLIENT and not called then return self:DeployClient() end
+	self:CallOnClient("DeployClient")
 	local owner = self:ParanaturalGetOwner()
+	print(owner)
 	if not owner then return end
 	self.ParanaturalCurrentForm = self.ParanaturalCurrentForm or owner:GetInfo("paranatural_weapon_form_1") or "grip"
 	self:ApplyForm(self.ParanaturalCurrentForm)
