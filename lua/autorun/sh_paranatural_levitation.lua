@@ -58,6 +58,7 @@ local function levitate(ply)
 	ply:SetMoveType(MOVETYPE_FLY)
 	ply:SetNWBool("paranatural_levitating", true)
 	ply:EmitSound("paranatural/levitation/loop.wav", 75, 100, 1, CHAN_STATIC)
+	ply.paranatural_lv_playing = true
 end
 
 hook.Add("CalcMainActivity", "paranatural_calcactivity_levitation", function(ply, vel)
@@ -67,8 +68,11 @@ hook.Add("CalcMainActivity", "paranatural_calcactivity_levitation", function(ply
 end)
 
 hook.Add("SetupMove", "paranatural_levitation", function(ply, mv)
-	if ply:IsOnGround() then
+	--do return end
+	if ply:IsOnGround() and ply.paranatural_lv_playing then
 		ply:StopSound("paranatural/levitation/loop.wav")
+		ply:StopSound("paranatural/levitation/lower.wav")
+		ply.paranatural_lv_playing = false
 	end
 	if ply:IsOnGround() and ply:GetNWBool("paranatural_forcing") then
 		ply:SetNWBool("paranatural_forcing", false)
@@ -85,7 +89,6 @@ hook.Add("SetupMove", "paranatural_levitation", function(ply, mv)
 		ply.paranatural_lv_reset = true
 	end
 	if CLIENT then
-		--print(ply:GetNWBool("paranatural_levitating"))
 		if not ply:GetNWBool("paranatural_levitating") then
 			if ply.paranatural_lv_reset then return end
 			return unlevitate(ply)
@@ -128,12 +131,14 @@ hook.Add("SetupMove", "paranatural_levitation", function(ply, mv)
 				end
 				ply:SetNWBool("paranatural_slowfall", true)
 				ply:EmitSound("paranatural/levitation/lower.wav", 75, 100, 1, CHAN_STATIC)
+				ply.paranatural_lv_playing = true
 			elseif ply:GetNWBool("paranatural_slowfall") then
 				if IsFirstTimePredicted() then
 					ply.paranatural_lv_reset = true
 				end
 				ply:SetNWBool("paranatural_slowfall", false)
 				ply:StopSound("paranatural/levitation/lower.wav")
+				ply.paranatural_lv_playing = false
 			end
 			return
 		end
