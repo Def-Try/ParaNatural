@@ -228,7 +228,7 @@ hook.Add("SetupMove", "paranatural_shield", function(ply, mv)
 				end
 				ent:GetPhysicsObject():SetVelocity((ply:EyeAngles():Forward() + VectorRand()) * 100)
 			end
-			return
+			continue
 		end
 		ent.paranatural_toofar = nil
 	end

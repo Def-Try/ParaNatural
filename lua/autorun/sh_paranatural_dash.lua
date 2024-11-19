@@ -22,7 +22,6 @@ hook.Add("ShouldCollide", "paranatural_dash", function(ent1, ent2)
 	local _1, _2, _3 = util.IntersectRayWithOBB(ply:GetShootPos(), ply:GetVelocity():GetNormal() * 500, ent:GetPos() + ent:OBBCenter(), ent:GetAngles(), ent:OBBMins(), ent:OBBMaxs())
 	if _1 == nil and _2 == nil and _3 == nil then return end
 	timer.Simple(0, function() ent:TakeDamage(100, ply, ply) end)
-	return false
 end)
 
 hook.Add("CalcMainActivity", "paranatural_calcactivity_dash", function(ply, vel)

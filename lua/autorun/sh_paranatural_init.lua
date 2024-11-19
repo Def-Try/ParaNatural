@@ -1,6 +1,10 @@
 AddCSLuaFile()
 AddCSLuaFile("autorun/client/cl_paranatural_concommands.lua")
 
+if SERVER then
+	resource.AddWorkshop("3334912444")
+end
+
 if CLIENT then
 	local paranatural_thirdperson = CreateConVar("paranatural_thirdperson", "0", FCVAR_ARCHIVE)
 	local fov_cv = GetConVar("fov_desired")
