@@ -188,7 +188,6 @@ hook.Add("SetupMove", "paranatural_telekinesis", function(ply, mv)
 			ent:SetSaveValue("m_flDetonateTime", 1)
 		end
 		if CurTime() - ent:GetNWFloat("paranatural_tk_grabbed", -1) < 0.743 then
-			local phys = ent:GetPhysicsObject()
 			local vel = Vector(0, 0, 200) * (0.743 - (CurTime() - ent:GetNWFloat("paranatural_tk_grabbed", -1) ))
 			for n=0,ent:GetPhysicsObjectCount()-1 do
 				local phys = ent:GetPhysicsObjectNum(n)
@@ -211,7 +210,16 @@ hook.Add("SetupMove", "paranatural_telekinesis", function(ply, mv)
 		if ent:GetPos():Distance(hold) > size * 4 then
 			ent.paranatural_toofar = ent.paranatural_toofar or CurTime()
 			if CurTime() - ent.paranatural_toofar > 5 then
-				ply:SetNWEntity("paranatural_tk_entity_".._, nil)
+				for i,ent2 in pairs({
+					ply:GetNWEntity("paranatural_tk_entity_1"),
+					ply:GetNWEntity("paranatural_tk_entity_2"),
+					ply:GetNWEntity("paranatural_tk_entity_3")
+				}) do
+					if ent2 == ent then
+						ply:SetNWEntity("paranatural_tk_entity_"..i, nil)
+						break
+					end
+				end
 				if count == 1 then
 					if ply:GetActiveWeapon():GetClass() == "paranatural_telekinetic" then
 						ply:SelectWeapon(ply.paranatural_wasactiveweapon)
