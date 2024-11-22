@@ -32,6 +32,7 @@ end)
 
 hook.Add("PlayerButtonDown", "paranatural_dash", function(ply, button)
 	if not allowed:GetBool() and not ply:IsAdmin() then return end
+	if ply:GetInfoNum("paranatural_dash_enable", 1) ~= 1 then return end
 	if button ~= ply:GetInfoNum("paranatural_dash_key", 12) then return end
 	if not IsFirstTimePredicted() then return end
 	if ply.paranatural_dashing_colset then return end

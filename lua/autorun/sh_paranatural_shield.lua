@@ -35,10 +35,11 @@ local material_lookup = {
 }
 
 hook.Add("PlayerButtonDown", "paranatural_shield", function(ply, button)
-	if IsValid(ply:GetNWEntity("paranatural_tk_entity_1")) then return end
+	if ply.paranatural_tk_entities and IsValid(ply.paranatural_tk_entities[1]) then return end
 	if CurTime() - ply:GetNWFloat("paranatural_cooldown", 0) <= 0.2 then return end
 	ply:SetNWFloat("paranatural_cooldown", CurTime())
 	if not allowed:GetBool() and not ply:IsAdmin() then return end
+	if ply:GetInfoNum("paranatural_shield_enable", 1) ~= 1 then return end
 	if not IsFirstTimePredicted() then return end
 	if button == 107 and ply:GetNWBool("paranatural_shielded") then -- throw
 		if CLIENT then return ply:SetDSP(0) end
