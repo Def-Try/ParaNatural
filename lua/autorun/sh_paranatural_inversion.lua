@@ -4,20 +4,32 @@ if CLIENT then
 	CreateClientConVar("paranatural_inversion_key", "19", true, true) -- default key: I
 end
 
-hook.Add("EntityTakeDamage", "paranatural_inversion", function(target, dmginfo)
-    if (dmginfo:GetAttacker().paranatural_iv_inverted or false) == (target.paranatural_iv_inverted or false) then return end
-    if dmginfo:IsDamageType(DMG_DISSOLVE + DMG_FALL + DMG_DROWN) then return end
-    local dmg = dmginfo:GetDamage()
-    dmginfo:ScaleDamage(0)
-    target:SetHealth(math.min(target:GetMaxHealth(), target:Health() + dmg))
-end)
+local function rel_inverted(ent1, ent2)
+    return ent1:GetNWBool("paranatural_iv_inverted", false) ~= ent2:GetNWBool("paranatural_iv_inverted", false)
+end
 
+hook.Add("EntityTakeDamage", "paranatural_inversion", function(target, dmginfo)
+    -- we don't care about damage that comes from relatively uninverted attackers
+    if not IsValid(dmginfo:GetAttacker()) then return end
+    if not rel_inverted(dmginfo:GetAttacker(), target) then return end
+
+    -- don't care about dissolving, falling, drowning...
+    if dmginfo:IsDamageType(DMG_DISSOLVE + DMG_FALL + DMG_DROWN +
+                            -- blunt, generic, crushing damage
+                            DMG_CLUB + DMG_GENERIC + DMG_CRUSH) then return end
+
+    -- for everything else...
+    -- inverted damage, do 2x the damage
+    dmginfo:ScaleDamage(2)
+    --target:SetHealth(math.min(target:GetMaxHealth(), target:Health() + dmg))
+    -- and passive damage from inverted damage
+    target.paranatural_iv_passive_dmg = (target.paranatural_iv_passive_dmg or 0) + 1
+    target:EmitSound("paranatural/inversion/damage.wav", 75, math.random(75, 115), 1, CHAN_STATIC)
+end)
 
 -- TODO: inversion animation
 -- TODO: sounds
 -- TODO: invert screen and controls
--- TODO: way to damage uninverted players
--- TODO: invert chat messages
 -- TODO: invert sounds?
 
 local function do_check_antimatdissolve(ent, data)
@@ -25,7 +37,7 @@ local function do_check_antimatdissolve(ent, data)
     if ent1 == game.GetWorld() or ent2 == game.GetWorld() then return end
     if not IsValid(ent1) or not IsValid(ent2) then return end
 
-    if ent1:GetNWBool("paranatural_iv_inverted", false) == ent2:GetNWBool("paranatural_iv_inverted", false) then return end
+    if rel_inverted(ent1, ent2) then return end
 
     local d_ent1, d_ent2 = DamageInfo(), DamageInfo()
 	d_ent1:SetDamage(ent2:Health()) d_ent2:SetDamage(ent1:Health())
@@ -44,6 +56,9 @@ hook.Add("PlayerButtonDown", "paranatural_inversion", function(ply, button)
 	if not IsFirstTimePredicted() then return end
     ply.paranatural_iv_inverted = not (ply.paranatural_iv_inverted or false)
     ply:SetNWBool("paranatural_iv_inverted", ply.paranatural_iv_inverted)
+    ply:SetNWFloat("paranatural_iv_inverted_time", CurTime())
+    ply.paranatural_iv_passive_dmg = nil
+    ply.paranatural_iv_passive_dmg_last = nil
     if ply.paranatural_iv_inverted then
         ply:ChatPrint("Inverted")
         ply.paranatural_iv_callback = ply:AddCallback("PhysicsCollide", do_check_antimatdissolve)
@@ -74,6 +89,10 @@ hook.Add("PreRender", "paranatural_inversion", function() need_to_redraw = {} en
 
 hook.Add("PlayerDeath", "paranatural_inversion", function(ply)
 	ply.paranatural_iv_inverted = false
+    ply.paranatural_iv_passive_dmg_last = nil
+    ply.paranatural_iv_passive_dmg = nil
+    ply:RemoveCallback("PhysicsCollide", ply.paranatural_iv_callback)
+    ply.paranatural_iv_callback = nil
 	ply:SetNWBool("paranatural_iv_inverted", ply.paranatural_iv_inverted)
 end)
 
@@ -154,11 +173,39 @@ hook.Add("RenderScreenspaceEffects", "paranatural_inversion", function()
     drawing = false
 end)
 
+local color_material = Material("color")
+hook.Add("RenderScreenspaceEffects", "paranatural_inversion__2", function(_, sky, sky3d)
+    local time = LocalPlayer():GetNWFloat("paranatural_iv_inverted_time", 0)
+    local local_inverted = LocalPlayer():GetNWBool("paranatural_iv_inverted", false)
+    surface.SetMaterial(color_material)
+    local c = 255
+    if local_inverted then c = 0 end
+    surface.SetDrawColor(c, c, c, 255-math.ease.InOutCubic(math.min(CurTime()-time, 1))*255)
+    surface.DrawRect(0, 0, ScrW(), ScrH())
+    if not local_inverted then return end
+    render.UpdateScreenEffectTexture()
+    render.DrawTextureToScreenRect(render.GetScreenEffectTexture(), ScrW(), 0, -ScrW(), ScrH())
+end)
+
+hook.Add("InputMouseApply", "paranatural_inversion", function(cmd, x, y, ang)
+    if not CLIENT then return end
+    local local_inverted = LocalPlayer():GetNWBool("paranatural_iv_inverted", false)
+    if not local_inverted then return end
+    cmd:SetViewAngles(ang + Angle(0, x / 22.5, 0))
+end)
+
+hook.Add("CreateMove", "paranatural_inversion", function(cmd)
+    if not CLIENT then return end
+    local local_inverted = LocalPlayer():GetNWBool("paranatural_iv_inverted", false)
+    if not local_inverted then return end
+    cmd:SetSideMove(-cmd:GetSideMove())
+end)
+
 local color_white = Color(255, 255, 255, 255)
 hook.Add("OnPlayerChat", "paranatural_inversion", function(ply, strText)
     -- if ply == LocalPlayer() then return end
 
-    if ply:GetNWBool("paranatural_iv_inverted", false) == LocalPlayer():GetNWBool("paranatural_iv_inverted", false) then return end
+    if rel_inverted(ply, LocalPlayer()) then return end
 
     local team_color = hook.Run("GetTeamColor", ply)
     team_color = Color(255-team_color.r, 255-team_color.g, 255-team_color.b, team_color.a)
@@ -166,4 +213,18 @@ hook.Add("OnPlayerChat", "paranatural_inversion", function(ply, strText)
     chat.AddText(team_color, string.reverse(ply:Name()), color_white, ": ", string.reverse(strText))
 
     return true
+end)
+
+hook.Add("PlayerTick", "paranatural_inversion", function(ply)
+    if CLIENT then return end
+    ply.paranatural_iv_passive_dmg_last = (ply.paranatural_iv_passive_dmg_last or CurTime())
+    ply.paranatural_iv_passive_dmg = (ply.paranatural_iv_passive_dmg or 0)
+    if ply.paranatural_iv_passive_dmg == 0 then return end
+    if CurTime() - ply.paranatural_iv_passive_dmg_last < 2 then return end
+    ply.paranatural_iv_passive_dmg_last = CurTime()
+    local dmg = DamageInfo()
+	    dmg:SetDamage(ply.paranatural_iv_passive_dmg)
+	    dmg:SetDamageType(DMG_DISSOLVE + DMG_RADIATION)
+	ply:TakeDamageInfo(dmg)
+    ply:EmitSound("paranatural/inversion/damage.wav", 75, math.random(75, 115), 1, CHAN_STATIC)
 end)

@@ -7,6 +7,7 @@ end
 hook.Add("PlayerShouldTakeDamage", "paranatural_dash", function(ply, attacker)
 	if ply:GetNWFloat("paranatural_dashing", -1) < 0 then return end
 	if ply == attacker then return false end
+	if not IsValid(attacker) then return end
 	attacker:TakeDamage(100, ply, ply)
 	if not attacker:IsNPC() and not attacker:IsPlayer() then
 		return false
