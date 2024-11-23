@@ -87,7 +87,7 @@ local invert_tbl = {
 }
 hook.Add("PreRender", "paranatural_inversion", function() need_to_redraw = {} end)
 
-hook.Add("PlayerDeath", "paranatural_inversion", function(ply)
+hook.Add("DoPlayerDeath", "paranatural_inversion", function(ply)
 	ply.paranatural_iv_inverted = false
     ply.paranatural_iv_passive_dmg_last = nil
     ply.paranatural_iv_passive_dmg = nil
@@ -205,12 +205,20 @@ local color_white = Color(255, 255, 255, 255)
 hook.Add("OnPlayerChat", "paranatural_inversion", function(ply, strText)
     -- if ply == LocalPlayer() then return end
 
-    if rel_inverted(ply, LocalPlayer()) then return end
+    if not rel_inverted(ply, LocalPlayer()) then return end
 
     local team_color = hook.Run("GetTeamColor", ply)
     team_color = Color(255-team_color.r, 255-team_color.g, 255-team_color.b, team_color.a)
 
-    chat.AddText(team_color, string.reverse(ply:Name()), color_white, ": ", string.reverse(strText))
+    local reversed_txt, reversed_name = "", ""
+    for i=utf8.len(strText)+1,1,-1 do
+        reversed_txt = reversed_txt..utf8.GetChar(strText, i)
+    end
+    for i=utf8.len(ply:Name())+1,1,-1 do
+        reversed_name = reversed_name..utf8.GetChar(ply:Name(), i)
+    end
+
+    chat.AddText(team_color, reversed_name, color_white, ": ", reversed_txt)
 
     return true
 end)
