@@ -54,6 +54,7 @@ hook.Add("PlayerButtonDown", "paranatural_inversion", function(ply, button)
 	if ply:GetInfoNum("paranatural_inversion_enable", 1) ~= 1 then return end
 	if button ~= ply:GetInfoNum("paranatural_inversion_key", 19) then return end
 	if not IsFirstTimePredicted() then return end
+    if not ply:Alive() then return end
     ply.paranatural_iv_inverted = not (ply.paranatural_iv_inverted or false)
     ply:SetNWBool("paranatural_iv_inverted", ply.paranatural_iv_inverted)
     ply:SetNWFloat("paranatural_iv_inverted_time", CurTime())
@@ -91,8 +92,10 @@ hook.Add("DoPlayerDeath", "paranatural_inversion", function(ply)
 	ply.paranatural_iv_inverted = false
     ply.paranatural_iv_passive_dmg_last = nil
     ply.paranatural_iv_passive_dmg = nil
-    ply:RemoveCallback("PhysicsCollide", ply.paranatural_iv_callback)
-    ply.paranatural_iv_callback = nil
+    if ply.paranatural_iv_callback then
+        ply:RemoveCallback("PhysicsCollide", ply.paranatural_iv_callback)
+        ply.paranatural_iv_callback = nil
+    end
 	ply:SetNWBool("paranatural_iv_inverted", ply.paranatural_iv_inverted)
 end)
 
